@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  backend:
+    container_name: backend_service
+    build:
+      context: ./backend
+      dockerfile: Dockerfile # We will create this later
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules # Exclude node_modules from being overwritten by the volume
+    env_file:
+      - .env
+    depends_on:
+      - db
+    networks:
+      - fuel_net
+
+  frontend:
+    container_name: frontend_service
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile # We will create this later
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend/src:/app/src # Sync only the src for faster live reload
+    env_file:
+      - .env
+    depends_on:
+      - backend
+    networks:
+      - fuel_net
+
+  ml-services:
+    container_name: ml_service
+    build:
+      context: ./ml-services
+      dockerfile: Dockerfile # We will create this later
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./ml-services:/app
+    env_file:
+      - .env
+    networks:
+      - fuel_net
+
+  db:
+    container_name: postgres_db
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    networks:
+      - fuel_net
+
+volumes:
+  postgres_data:
+
+networks:
+  fuel_net:
+    driver: bridge
